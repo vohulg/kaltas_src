@@ -1,0 +1,121 @@
+Main programm
+
+mainwindow.h
+
+#include <QMainWindow>
+#include <ttest.h>
+
+using namespace std;
+
+namespace Ui {
+class ddMainWindow;
+}
+
+class ddMainWindow : public QMainWindow
+{
+    Q_OBJECT
+
+public:
+
+    explicit ddMainWindow(QWidget *parent = 0);
+
+
+    ~ddMainWindow();
+
+private slots:
+     void ShowInfo(int , off_t);
+
+
+private:
+
+        Ui::ddMainWindow *ui;
+        Ttest *test; //point to thread
+
+};
+
+
+mainwindow.cpp
+
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
+
+ddMainWindow::ddMainWindow(QWidget *parent) :
+    QMainWindow(parent),
+    ui(new Ui::ddMainWindow)
+{
+    ui->setupUi(this);
+
+
+        test = new Ttest(this);
+        QObject::connect(test, SIGNAL(changeVal(int, off_t)), SLOT(ShowInfo(int, off_t)), Qt::QueuedConnection);
+        //connect(test, SIGNAL(changeVal(int, off_t)), this, SLOT(ShowInfo(int, off_t)));
+
+
+}
+
+ddMainWindow::~ddMainWindow()
+{
+    delete ui;
+}
+
+void ddMainWindow::ShowInfo(int progressVal, off_t time)
+{
+   ui->progressBar->setValue(progressVal);
+
+
+}
+
+void ddMainWindow::on_ddStartButton_clicked()
+{
+  test->start();
+}
+----------------------------------------------------------------------------
+potok
+ttest.h
+
+#include <QThread>
+
+class Ttest : public QThread
+{
+    Q_OBJECT
+public:
+    explicit Ttest(QObject *parent = 0);
+    void run();
+
+signals:
+
+    void changeVal(int, off_t);
+
+
+public slots:
+
+};
+
+----------------------------------------------
+
+ttest.cpp
+
+#include "ttest.h"
+
+Ttest::Ttest(QObject *parent) :
+    QThread(parent)
+{
+}
+
+void Ttest::run()
+{
+
+    int pv = 0;
+    off_t t = 0;
+    for (int x=0; x < 100; x ++)
+    {
+      emit changeVal(pv, t);
+      pv++;
+      t++;
+      sleep(1);
+
+    }
+
+}
+
+
