@@ -79,6 +79,9 @@ private slots:
     void on_widButChooseDir_clicked();
     void on_widButStartMobileImage_clicked();
     qlonglong getSizeMobileFolder(const QString &folder);
+    qlonglong getSizeWithDU(const QString &folder);
+    qlonglong getSizeWithDF(const QString &folder);
+
 
     void on_widButStopMobileImage_clicked();
 
@@ -90,6 +93,8 @@ private slots:
      QString getPathSdcardFromLink();
     QString getSdcardPath();
     QString getEnvPath(int type);
+    void getMemoryFolderNames();
+
 
      void slotChangeProgressBarValMobile (int currentValue);
      bool initialBeforStartMobile();

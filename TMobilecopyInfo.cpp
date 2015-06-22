@@ -153,11 +153,13 @@ QString TMobileCopyInfo::getStringInfo()
         speed = 1;
 
     time_t valLostTimeMobile = lostKiloByte / speed;
-    cout << "valLostTimeMobile=" << valLostTimeMobile ;
+    //cout << "valLostTimeMobile=" << valLostTimeMobile ;
 
     QString currTimeStr = ShowTime->getTimestr(workTime);
 
-    resultStr = "Left: " + ShowTime->getTimestr(valLostTimeMobile) + " \nTotal time of imaging: " + currTimeStr;
+    double currentDestSize = (double)copiedByte / 1024 /1024;
+
+    resultStr = trUtf8("Осталоcь: ") + ShowTime->getTimestr(valLostTimeMobile) + trUtf8(" \nОбщее время копирования: ") + currTimeStr + trUtf8("\nСкопировано: ") + QString::number(currentDestSize) + " Mb";
 
     return resultStr;
 

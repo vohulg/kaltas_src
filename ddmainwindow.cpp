@@ -810,11 +810,11 @@ void ddMainWindow::on_widButUpdateMobileDevice_clicked()
 
     totalMobileSize = sdcardSize + dataSize;
 
-    double doublTotalSize =  (double)totalMobileSize / 1024 /1024;
+    double doublTotalSize =  (double)totalMobileSize / 1024 /1024 ;
 
     if (doublTotalSize > 0) // выводим размер папок только если удалось определить размер с помощью утилит du или df
     {
-         QString info = "Mobile size " + QString::number(doublTotalSize) + " Gbyte";
+         QString info = "Mobile size " + QString::number(doublTotalSize) + " Mbyte";
          ui->widLabelSizeMobileInfo->setText(info );
     }
 
@@ -836,6 +836,8 @@ void ddMainWindow::on_widButChooseDir_clicked()
 // Запуск процесса копирования папок мобильного телефона /data и /sdcard в папку назначения
 void ddMainWindow::on_widButStartMobileImage_clicked()
 {
+    ui->widLabelServiceInfo->setText(trUtf8("Подождите. Идет подготовка к копированию........"));
+
     // инициализация данных
     initialBeforStartMobile();
 
@@ -847,34 +849,121 @@ void ddMainWindow::on_widButStartMobileImage_clicked()
 
 }
 
+qlonglong ddMainWindow::getSizeWithDU(const QString &folder)
+{
+    qlonglong folderSize = 0;
+    // -------------использем утилиту du для получения размера--------------------
+    QProcess* adb = new QProcess(this);
+    QString cmd = "adb";
+    QStringList argAdb;
+    argAdb << "shell" << "du" <<"-Lcs" << folder;
+    adb->start(cmd, argAdb);
+    if (!adb->waitForFinished())
+        return 0;
+
+    QByteArray res = adb->readLine();
+    while (!res.isNull())
+    {
+        QString strLine = res;
+        if (strLine.contains("total"))
+        {
+            QStringList list = strLine.split("\t");
+            folderSize = list.at(0).toLongLong();
+            break;
+        }
+
+        res = adb->readLine();
+    }
+
+    return folderSize;
+
+
+}
+
+
+qlonglong ddMainWindow::getSizeWithDF(const QString &folder)
+{
+
+    qlonglong folderSize = 0;
+    // -------------использем утилиту du для получения размера--------------------
+    QProcess* adb = new QProcess(this);
+    QString cmd = "adb";
+    QStringList argAdb;
+    argAdb << "shell" << "df" << folder;
+    adb->start(cmd, argAdb);
+    if (!adb->waitForFinished())
+        return 0;
+
+    QByteArray res = adb->readLine();
+    QStringList resList;
+    while (!res.isNull())
+    {
+        QString strLine = res;
+        if (strLine.contains(folder))
+        {
+
+            QStringList list = strLine.split(" ");
+            folderSize = list.at(0).toLongLong();
+            for (int i = 0; i < list.size(); i++)
+              {
+
+                if (!list.at(i).isEmpty()) // create new list to easy find size value
+                    resList.append(list.at(i));
+              }
+
+            break;
+        }
+
+        res = adb->readLine();
+    }
+
+    if (resList.size() < 2) // result from df not correct
+    {
+        folderSize = 0;
+        return folderSize;
+    }
+
+
+
+    QString strsize = resList.at(1);
+
+    if (strsize.contains("M"))
+    {
+       strsize.remove("M");
+       folderSize = strsize.toLongLong() * 1024 *1024; // convert to byte from megabyte
+    }
+
+    else if (strsize.contains("K"))
+    {
+       strsize.remove("K");
+       folderSize = strsize.toLongLong() * 1024 ; // convert to byte from megabyte
+    }
+
+    else if (strsize.contains("G"))
+    {
+       strsize.remove("G");
+       folderSize = strsize.toLongLong() * 1024 *1024 *1024; // convert to byte from megabyte
+    }
+
+
+
+    return folderSize;
+
+
+
+}
+
 qlonglong ddMainWindow::getSizeMobileFolder(const QString &folder)
 {
-  qlonglong folderSize = 0;
+  qlonglong dirSize = getSizeWithDU(folder);
 
-  // использем утилиту du
-  QProcess* adb = new QProcess(this);
-  QString cmd = "adb";
-  QStringList argAdb;
-  argAdb << "shell" << "du" <<"-Lcs" << folder;
-  adb->start(cmd, argAdb);
-  if (!adb->waitForFinished())
-      return 0;
+  if (dirSize != 0) // размер директории удалось определить
+        return dirSize;
 
-  QByteArray res = adb->readLine();
-  while (!res.isNull())
-  {
-      QString strLine = res;
-      if (strLine.contains("total"))
-      {
-          QStringList list = strLine.split("\t");
-          folderSize = list.at(0).toLongLong();
-          break;
-      }
+  // ----если размер не удалось узнать с помощью du--использем утилиту df для получения размера--------------------
+   dirSize = getSizeWithDF(folder);
 
-          res = adb->readLine();
-  }
-
-  return folderSize;
+   return dirSize;
 
 }
 
