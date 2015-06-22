@@ -90,6 +90,7 @@ private slots:
      QString getPathSdcardFromLink();
     QString getSdcardPath();
     QString getEnvPath(int type);
+    void getMemoryFolderNames();
 
      void slotChangeProgressBarValMobile (int currentValue);
      bool initialBeforStartMobile();

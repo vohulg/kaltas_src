@@ -57,11 +57,10 @@ ddMainWindow::ddMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::dd
 // первоначальная инициализация
  bool ddMainWindow::initializing()
  {
-     // даем значения папкам мобильного телефона
-     dataFolder = "/data";
-      sdcardFolder = "/sdcard";
 
-      mobileCopyInfo = NULL;
+     getMemoryFolderNames();
+
+     mobileCopyInfo = NULL;
 
       stopMobileCopy = false;
 
@@ -793,10 +792,14 @@ void ddMainWindow::on_widButUpdateMobileDevice_clicked()
         return;
     }
 
+    //---------если сюда дошли значит телефон соединился с компом----------------------------------------------------------
+
+    getMemoryFolderNames();
+
    ui->widComboMobileDevice->clear();
     ui->widComboMobileDevice->addItem(list.at(0));
 
-    // плдучаем байтах размер папки /data
+    // плдучаем в байтах размер папки /data
     qlonglong dataSize = getSizeMobileFolder(dataFolder);
 
     // получаем в байтах размер папки sdcard
@@ -848,6 +851,7 @@ qlonglong ddMainWindow::getSizeMobileFolder(const QString &folder)
 {
   qlonglong folderSize = 0;
 
+  // использем утилиту du
   QProcess* adb = new QProcess(this);
   QString cmd = "adb";
   QStringList argAdb;
@@ -1137,4 +1141,19 @@ void ddMainWindow::on_ExitBut_clicked()
 void ddMainWindow::on_ddStopButton_clicked()
 {
     ddStop();
+}
+
+void ddMainWindow::getMemoryFolderNames()
+{
+    // даем значения папкам мобильного телефона
+   dataFolder = getEnvPath(eDATA);
+
+   if (dataFolder.isEmpty()) // на случай если не удалось получить название директории из телефона
+       dataFolder = "/data";
+
+   sdcardFolder = getEnvPath(eSDCARD);
+
+   if (sdcardFolder.isEmpty())
+        sdcardFolder = "/sdcard";
+
 }
