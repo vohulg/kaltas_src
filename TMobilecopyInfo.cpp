@@ -34,21 +34,16 @@ bool TMobileCopyInfo::startLoopInfo()
         {
         currentSize = getSizeDestFolder();
 
-        if (MobileTotalSize == 0)
+        if (MobileTotalSize == 0) // не получилось узнать размер памяти, поэтому копируем выводя количество скопированных килобайт
         {
 
-           // currentSize = currentSize / 1024 /1024;
-
-            double size = (double)currentSize / 1024 /1024;
-
-
-            QString str = "Copid " + QString::number(size) + " Mbyte ";
+           double size = (double)currentSize / 1024 /1024;
+            QString str = trUtf8("Скопировано:  ") + QString::number(size) + " Mbyte ";
             emit sigSetServiceInfo(str);
             sleep(1);
-            qDebug() << "size of folder = " << currentSize ;
+            qDebug() << "size of destination folder = " << currentSize ;
+            continue;
 
-           continue;
-            //MobileTotalSize = 1;
         }
 
 
@@ -78,8 +73,13 @@ bool TMobileCopyInfo::startLoopInfo()
     // end of copying
     if (interruptCopy == false)
     {
+
+        double size = (double)getSizeDestFolder() / 1024 /1024;
+        QString str = trUtf8("Копирование завершено. Скопировано:  ") + QString::number(size) + " Mbyte ";
+
+
      emit sigChangeProgressBarValMobile(100);
-     emit sigSetServiceInfo("");
+     emit sigSetServiceInfo(str);
     }
 
     //qDebug() << "stopLoop=" << stopLoop;
@@ -96,7 +96,7 @@ qlonglong TMobileCopyInfo::getSizeDestFolder()
  QProcess proc;
  QString cmd = "du";
  QStringList argProc;
- argProc << "-Lcs" << DestDirMobile  ;
+ argProc << "-Lcsb" << DestDirMobile  ;
  proc.start(cmd, argProc);
 
  if (!proc.waitForFinished())

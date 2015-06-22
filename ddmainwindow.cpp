@@ -49,6 +49,8 @@ ddMainWindow::ddMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::dd
 {
     ui->setupUi(this);
     initializing();
+
+
 }
 
 
@@ -77,9 +79,6 @@ ddMainWindow::ddMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::dd
      QObject::connect(ui->tableWidget, SIGNAL(cellClicked(int,int)), SLOT(showDiskInCombobox(int, int)));
 
      connect (&timer, SIGNAL (timeout()), &loop, SLOT(quit()));
-
-
-
 
      prevCol = -1;
      prevRow = -1;
@@ -810,10 +809,11 @@ void ddMainWindow::on_widButUpdateMobileDevice_clicked()
 
     double doublTotalSize =  (double)totalMobileSize / 1024 /1024;
 
-    QString info = "Mobile size " + QString::number(doublTotalSize) + " Gbyte";
-
-    ui->widLabelSizeMobileInfo->setText(info );
-
+    if (doublTotalSize > 0) // выводим размер папок только если удалось определить размер с помощью утилит du или df
+    {
+         QString info = "Mobile size " + QString::number(doublTotalSize) + " Gbyte";
+         ui->widLabelSizeMobileInfo->setText(info );
+    }
 
 }
 // выбор директории куда будет сохраняться данные с мобильного телефона
@@ -833,17 +833,14 @@ void ddMainWindow::on_widButChooseDir_clicked()
 // Запуск процесса копирования папок мобильного телефона /data и /sdcard в папку назначения
 void ddMainWindow::on_widButStartMobileImage_clicked()
 {
-
     // инициализация данных
     initialBeforStartMobile();
-
 
     // создаем процесс для запуска копирования папки /data
     dataCopyProc = new QProcess(this);
     QObject::connect(dataCopyProc, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(dataCopyFinished(int, QProcess::ExitStatus)));
     QObject::connect(dataCopyProc, SIGNAL(started()), SLOT(dataCopyStarted()));
     startMobileFolderCopy(dataFolder, (ui->widLineDestDirMobile->text() + dataFolder), dataCopyProc );
-
 
 }
 
@@ -974,6 +971,41 @@ void ddMainWindow::on_widButStopMobileImage_clicked()
 
    return true;
   }
+
+  QString ddMainWindow::getEnvPath(int type)
+  {
+      QString env = "";
+
+      switch (type)
+      {
+        case eSDCARD: env = "$EXTERNAL_STORAGE";
+          break;
+        case eDATA: env = "$ANDROID_DATA";
+          break;
+
+      case eSDCARD_EXT: env = "$EXTERNAL_STORAGE2";
+        break;
+
+
+      }
+
+
+      QProcess proc;
+      QString cmd = "adb";
+      QStringList argAdb;
+      argAdb << "shell" << "echo" << env ;
+      proc.start(cmd, argAdb);
+      qDebug() <<  " pid =" << proc.pid() << " process started"  ;
+      if (!proc.waitForFinished())
+          return false;
+
+      QByteArray res = proc.readLine();
+
+      return res.trimmed();
+
+  }
+
+
 
   QString ddMainWindow::getSdcardPath()
   {

@@ -32,6 +32,7 @@ using namespace std;
 
 extern bool StopIndicator;
 
+enum ENV_TYPE {eSDCARD, eDATA, eSDCARD_EXT };
 
 namespace Ui {
 class ddMainWindow;
