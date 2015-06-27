@@ -51,6 +51,7 @@ ddMainWindow::ddMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::dd
     initializing();
 
 
+
 }
 
 
@@ -800,21 +801,28 @@ void ddMainWindow::on_widButUpdateMobileDevice_clicked()
     ui->widComboMobileDevice->addItem(list.at(0));
 
     // плдучаем в байтах размер папки /data
-    qlonglong dataSize = getSizeMobileFolder(dataFolder);
+     dataSize = getSizeMobileFolder(dataFolder);
+     double doublDataSize =  (double)dataSize / 1024 /1024 ;
 
     // получаем в байтах размер папки sdcard
 
-    qlonglong sdcardSize = getSizeMobileFolder(sdcardFolder);
-
+    sdcardSize = getSizeMobileFolder(sdcardFolder);
+   double doublSdcardSize =  (double)sdcardSize / 1024 /1024 ;
     // выводим информацию пользователю о размерах файлов
 
-    totalMobileSize = sdcardSize + dataSize;
+   extSdcardsize = getSizeMobileFolder(extsdcardFolder);
+   double doublExtSdcardsize = (double)extSdcardsize/1024/1024;
+
+    totalMobileSize = sdcardSize + dataSize + extSdcardsize;
 
     double doublTotalSize =  (double)totalMobileSize / 1024 /1024 ;
 
     if (doublTotalSize > 0) // выводим размер папок только если удалось определить размер с помощью утилит du или df
     {
-         QString info = "Mobile size " + QString::number(doublTotalSize) + " Mbyte";
+        QString info = trUtf8("Размер внутренней памяти: ") + QString::number(doublDataSize) + " Mbyte\n"
+                + trUtf8("Размер внешней памяти: ") + QString::number(doublSdcardSize) + " Mbyte\n"
+                + trUtf8("Размер расширенной внешней памяти: ") + QString::number(doublExtSdcardsize) + " Mbyte\n";
+
          ui->widLabelSizeMobileInfo->setText(info );
     }
 
@@ -845,7 +853,9 @@ void ddMainWindow::on_widButStartMobileImage_clicked()
     dataCopyProc = new QProcess(this);
     QObject::connect(dataCopyProc, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(dataCopyFinished(int, QProcess::ExitStatus)));
     QObject::connect(dataCopyProc, SIGNAL(started()), SLOT(dataCopyStarted()));
+    fullPathDataFolder = ui->widLineDestDirMobile->text() + dataFolder;
     startMobileFolderCopy(dataFolder, (ui->widLineDestDirMobile->text() + dataFolder), dataCopyProc );
+
 
 }
 
@@ -987,13 +997,15 @@ void ddMainWindow::on_widButStopMobileImage_clicked()
         mobileCopyInfo->breakCopy();
     }
 
-
-
-
 }
 
  void ddMainWindow::dataCopyFinished (int code, QProcess::ExitStatus exitStatus)
  {
+
+     // проверяем что вернул процесс, какой результат
+     QByteArray res = dataCopyProc->readAll();
+     checkResultCopyData(res);
+
      qDebug() << "coping of DATA FOLDER pid process" << dataCopyProc->pid() <<"  finished;"  << "exitStatus=" << exitStatus << "exitCode=" << code ;
      dataCopyProc->close();
 
@@ -1009,17 +1021,7 @@ void ddMainWindow::on_widButStopMobileImage_clicked()
            //============запуск второго процесса копирования папки /sdcard====================
            sdcardCopyProc = new QProcess (this);
            QObject::connect(sdcardCopyProc, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(sdcardCopyFinished(int, QProcess::ExitStatus)));
-
-            // получение полного пути для sdcard
-           // if (!getPathSdcardFromLink().isEmpty())
-              //  sdcardFolder = getPathSdcardFromLink();
-
-            // получение директории с внешней карточки
-            if (!getSdcardPath().isEmpty())
-                sdcardFolder = getSdcardPath();
-
-
-            startMobileFolderCopy(sdcardFolder, (ui->widLineDestDirMobile->text() + sdcardFolder), sdcardCopyProc );
+           startMobileFolderCopy(sdcardFolder, (ui->widLineDestDirMobile->text() + sdcardFolder), sdcardCopyProc );
 
        }
 
@@ -1028,8 +1030,85 @@ void ddMainWindow::on_widButStopMobileImage_clicked()
 
  }
 
+ bool ddMainWindow::checkResultCopyData(QByteArray &result )
+ {
+
+     QDir dir(fullPathDataFolder);
+     if (!dir.exists()) // no data folder copied;
+     {
+        mobileCopyInfo->setTotalMobilesize(totalMobileSize - dataSize);
+
+        if (checkPermissDir(dataFolder))
+        {
+            ui->widLabelSizeMobileInfo->setStyleSheet("QLabel {color:red;}");
+            QString info = trUtf8("Копирование внутренней памяти не осуществлено\n") +
+                    trUtf8("Размер внешней памяти: ") + QString::number((double)(sdcardSize/1024/1024)) + " Mbyte\n";
+
+             ui->widLabelSizeMobileInfo->setText(info );
+
+        }
+
+        else
+        {
+            ui->widLabelSizeMobileInfo->setStyleSheet("QLabel {color:red;}");
+            QString info = trUtf8("Доступ к внутренней памяти запрещен. Копирование внутренней памяти невозможно\n") +
+                    trUtf8("Размер внешней памяти: ") + QString::number((double)(sdcardSize/1024/1024)) + " Mbyte\n";
+
+             ui->widLabelSizeMobileInfo->setText(info );
+
+
+        }
+
+        return true;
+     }
+ }
+
+ bool ddMainWindow::checkPermissDir (QString &folder)
+ {
+
+     QProcess* adb = new QProcess(this);
+     QString cmd = "adb";
+     QStringList argAdb;
+     argAdb << "shell" << "ls -l" << folder;
+     adb->start(cmd, argAdb);
+     if (!adb->waitForFinished())
+         return 0;
+
+     QByteArray res = adb->readAll();
+
+     if (res.contains("Permission denied")) // permission denied to folder
+     {
+        return false;
+     }
+
+        else          // folder avalible for coping
+         return true;
+
+
+
+
+ }
+
  void ddMainWindow::sdcardCopyFinished (int code, QProcess::ExitStatus exitStatus)
  {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
      // приводим кнопки и переменные к состоянию до старта процесса копирования
      initialAfterFinishMobile();
 
@@ -1050,6 +1129,16 @@ void ddMainWindow::on_widButStopMobileImage_clicked()
        }
  }
 
+ void ddMainWindow::extSdcardCopyFinished(int code, QProcess::ExitStatus exitStatus)
+ {
+
+
+
+
+ }
+
+
+
 
  // запуск процесса копирования папки мобильного телефона
   bool ddMainWindow::startMobileFolderCopy(const QString &folderSrc, const QString &folderDest, QProcess* proc )
@@ -1060,7 +1149,12 @@ void ddMainWindow::on_widButStopMobileImage_clicked()
       proc->start(cmd, argAdb);
       qDebug() <<  " pid =" << proc->pid() << " process started"  ;
       if (!proc->waitForFinished())
+      {
+          qDebug() << "not run copy process of data folder";
           return false;
+
+      }
+
 
    return true;
   }
@@ -1100,22 +1194,6 @@ void ddMainWindow::on_widButStopMobileImage_clicked()
 
 
 
-  QString ddMainWindow::getSdcardPath()
-  {
-      QProcess proc;
-      QString cmd = "adb";
-      QStringList argAdb;
-      argAdb << "shell" << "echo" << "$EXTERNAL_STORAGE" ;
-      proc.start(cmd, argAdb);
-      qDebug() <<  " pid =" << proc.pid() << " process started"  ;
-      if (!proc.waitForFinished())
-          return false;
-
-      QByteArray res = proc.readLine();
-
-      return res.trimmed();
-
-  }
 
 // получаем путь к точке монтирования sdcard, так как на многоих моделях в корне лежит ссылка на точку монтирования
   // карты памяти,
@@ -1244,5 +1322,10 @@ void ddMainWindow::getMemoryFolderNames()
 
    if (sdcardFolder.isEmpty())
         sdcardFolder = "/sdcard";
+
+   extsdcardFolder = getEnvPath(eSDCARD_EXT);
+
+   if (extsdcardFolder.isEmpty())
+        sdcardFolder = "/sdcard2";
 
 }

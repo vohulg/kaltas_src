@@ -25,6 +25,7 @@ public slots:
     void run();
     void setStopLoop();
     void breakCopy();
+    void setTotalMobilesize(const qlonglong mobileTotalSize);
 
 
 private slots:

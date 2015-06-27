@@ -16,6 +16,12 @@ bool TMobileCopyInfo::initialize(const QString & destFolder, const qlonglong mob
 
 }
 
+void TMobileCopyInfo::setTotalMobilesize(const qlonglong newMobileTotalSize)
+{
+    MobileTotalSize = newMobileTotalSize;
+
+}
+
 void  TMobileCopyInfo::run()
 {
   if (startLoopInfo())

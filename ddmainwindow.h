@@ -88,11 +88,12 @@ private slots:
     void dataCopyFinished (int code, QProcess::ExitStatus exitStatus);
     void dataCopyStarted();
     void sdcardCopyFinished (int code, QProcess::ExitStatus exitStatus);
-     bool startMobileFolderCopy(const QString &folderSrc, const QString &folderDest, QProcess* proc);
+    bool startMobileFolderCopy(const QString &folderSrc, const QString &folderDest, QProcess* proc);
+
+    void extSdcardCopyFinished (int code, QProcess::ExitStatus exitStatus);
 
      QString getPathSdcardFromLink();
-    QString getSdcardPath();
-    QString getEnvPath(int type);
+     QString getEnvPath(int type);
     void getMemoryFolderNames();
 
 
@@ -109,6 +110,11 @@ private slots:
      void on_ExitBut_clicked();
 
      void on_ddStopButton_clicked();
+
+     bool checkResultCopyData(QByteArray &result );
+
+     bool checkPermissDir (QString &folder);
+
 
 private:
 
@@ -130,17 +136,23 @@ private:
 
     QString destDirMobile;
     qlonglong totalMobileSize;
+    qlonglong dataSize;
+    qlonglong sdcardSize;
+    qlonglong extSdcardsize;
 
 
     TMobileCopyInfo* mobileCopyInfo;
 
     QString dataFolder ;
     QString sdcardFolder ;
+    QString extsdcardFolder;
 
     QProcess* dataCopyProc;
     QProcess* sdcardCopyProc;
+    QProcess* extSdcardCopyProc;
 
     bool stopMobileCopy;
+    QString fullPathDataFolder;
 
 
 
