@@ -1367,10 +1367,24 @@ bool ddMainWindow::checkRootInAdbMode()
 
     if (res.contains("adbd cannot run as root")) // permission denied to data folder
     {
-       return false;
+        return false;
     }
 
        else          // data folder avalible for coping
         return true;
+
+}
+
+bool ddMainWindow::checkConnectAsRoot()
+{
+    QProcess* adb = new QProcess(this);
+    QString cmd = "adb";
+    QStringList argAdb;
+    argAdb << "shell" << "su" << "ls -l" << "/data";
+    adb->start(cmd, argAdb);
+    if (!adb->waitForFinished())
+        return 0;
+
+    QByteArray res = adb->readAll();
 
 }

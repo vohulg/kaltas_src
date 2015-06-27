@@ -118,6 +118,7 @@ private slots:
 
      bool checkRootInAdbMode();
 
+     bool checkConnectAsRoot();
 
 private:
 
