@@ -116,6 +116,8 @@ private slots:
 
      bool checkPermissDir (QString &folder);
 
+     bool checkRootInAdbMode();
+
 
 private:
 

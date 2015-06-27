@@ -823,7 +823,19 @@ void ddMainWindow::on_widButUpdateMobileDevice_clicked()
                 + trUtf8("Размер занятой внешней памяти: ") + QString::number(doublSdcardSize) + " Mbyte\n"
                 + trUtf8("Размер занятой расширенной внешней памяти: ") + QString::number(doublExtSdcardsize) + " Mbyte\n";
 
-         ui->widLabelSizeMobileInfo->setText(info );
+
+        // проверяем запущен ли adbd на телефоне от рута
+        bool isAdbRoot = checkRootInAdbMode();
+        if (!isAdbRoot)
+        {
+             info = trUtf8("Размер занятой внутренней памяти: ") + QString::number(doublDataSize) + trUtf8(" Mbyte (debug режим на телефоне не запущен от root)\n")
+                    + trUtf8("Размер занятой внешней памяти: ") + QString::number(doublSdcardSize) + " Mbyte\n"
+                    + trUtf8("Размер занятой расширенной внешней памяти: ") + QString::number(doublExtSdcardsize) + " Mbyte\n";
+
+
+        }
+
+        ui->widLabelSizeMobileInfo->setText(info );
     }
 
 }
@@ -869,7 +881,7 @@ bool ddMainWindow::initialBeforStartMobile()
  ui->widButStopMobileImage->setEnabled(true);
  ui->widLabelServiceInfo->setText("Coping process is started......");
 
- ui->progressBar->hide();
+  ui->widProgressBarMobile->hide();
  return true;
 
 }
@@ -1338,5 +1350,27 @@ void ddMainWindow::getMemoryFolderNames()
 
    if (extsdcardFolder.isEmpty())
         sdcardFolder = "/sdcard2";
+
+}
+
+bool ddMainWindow::checkRootInAdbMode()
+{
+    QProcess* adb = new QProcess(this);
+    QString cmd = "adb";
+    QStringList argAdb;
+    argAdb << "root";
+    adb->start(cmd, argAdb);
+    if (!adb->waitForFinished())
+        return 0;
+
+    QByteArray res = adb->readAll();
+
+    if (res.contains("adbd cannot run as root")) // permission denied to data folder
+    {
+       return false;
+    }
+
+       else          // data folder avalible for coping
+        return true;
 
 }
