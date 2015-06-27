@@ -33,6 +33,7 @@ using namespace std;
 extern bool StopIndicator;
 
 enum ENV_TYPE {eSDCARD, eDATA, eSDCARD_EXT };
+enum ENV_SIZE_INDEX {eTOTAL = 1, eUSED = 2, eFREE = 3 };
 
 namespace Ui {
 class ddMainWindow;

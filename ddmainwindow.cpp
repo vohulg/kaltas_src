@@ -789,7 +789,7 @@ void ddMainWindow::on_widButUpdateMobileDevice_clicked()
     if (list.at(lastIndex).toLatin1().startsWith("offline\n"))
     {
       // устройство подключено но находится в offline режиме
-        QMessageBox::information(this, tr("Info") ,tr("Mobile device connectrd in offline mode. Reconnect to PC manual"));
+        QMessageBox::information(this, tr("Info") ,tr("Mobile device connected in offline mode. Reconnect to PC manual"));
         return;
     }
 
@@ -819,9 +819,9 @@ void ddMainWindow::on_widButUpdateMobileDevice_clicked()
 
     if (doublTotalSize > 0) // выводим размер папок только если удалось определить размер с помощью утилит du или df
     {
-        QString info = trUtf8("Размер внутренней памяти: ") + QString::number(doublDataSize) + " Mbyte\n"
-                + trUtf8("Размер внешней памяти: ") + QString::number(doublSdcardSize) + " Mbyte\n"
-                + trUtf8("Размер расширенной внешней памяти: ") + QString::number(doublExtSdcardsize) + " Mbyte\n";
+        QString info = trUtf8("Размер занятой внутренней памяти: ") + QString::number(doublDataSize) + " Mbyte\n"
+                + trUtf8("Размер занятой внешней памяти: ") + QString::number(doublSdcardSize) + " Mbyte\n"
+                + trUtf8("Размер занятой расширенной внешней памяти: ") + QString::number(doublExtSdcardsize) + " Mbyte\n";
 
          ui->widLabelSizeMobileInfo->setText(info );
     }
@@ -856,6 +856,21 @@ void ddMainWindow::on_widButStartMobileImage_clicked()
     fullPathDataFolder = ui->widLineDestDirMobile->text() + dataFolder;
     startMobileFolderCopy(dataFolder, (ui->widLineDestDirMobile->text() + dataFolder), dataCopyProc );
 
+
+}
+
+// инициализация перед началом копирования телефона
+bool ddMainWindow::initialBeforStartMobile()
+{
+
+  stopMobileCopy = false;
+ ui->widProgressBarMobile->setValue(0);
+ ui->widButStartMobileImage->setEnabled(false);
+ ui->widButStopMobileImage->setEnabled(true);
+ ui->widLabelServiceInfo->setText("Coping process is started......");
+
+ ui->progressBar->hide();
+ return true;
 
 }
 
@@ -935,7 +950,7 @@ qlonglong ddMainWindow::getSizeWithDF(const QString &folder)
 
 
 
-    QString strsize = resList.at(1);
+    QString strsize = resList.at(eUSED); // размер использованной памяти
 
     if (strsize.contains("M"))
     {
@@ -1042,7 +1057,8 @@ void ddMainWindow::on_widButStopMobileImage_clicked()
         {
             ui->widLabelSizeMobileInfo->setStyleSheet("QLabel {color:red;}");
             QString info = trUtf8("Копирование внутренней памяти не осуществлено\n") +
-                    trUtf8("Размер внешней памяти: ") + QString::number((double)(sdcardSize/1024/1024)) + " Mbyte\n";
+                    trUtf8("Размер внешней памяти: ") + QString::number((double)(sdcardSize/1024/1024)) + " Mbyte\n"
+                    +  trUtf8("Размер расширенной внешней памяти: ") + QString::number((double)(extSdcardsize/1024/1024)) + " Mbyte\n";
 
              ui->widLabelSizeMobileInfo->setText(info );
 
@@ -1052,7 +1068,8 @@ void ddMainWindow::on_widButStopMobileImage_clicked()
         {
             ui->widLabelSizeMobileInfo->setStyleSheet("QLabel {color:red;}");
             QString info = trUtf8("Доступ к внутренней памяти запрещен. Копирование внутренней памяти невозможно\n") +
-                    trUtf8("Размер внешней памяти: ") + QString::number((double)(sdcardSize/1024/1024)) + " Mbyte\n";
+                    trUtf8("Размер внешней памяти: ") + QString::number((double)(sdcardSize/1024/1024)) + " Mbyte\n"
+                    + trUtf8("Размер расширенной внешней памяти: ") + QString::number((double)(extSdcardsize/1024/1024)) + " Mbyte\n";
 
              ui->widLabelSizeMobileInfo->setText(info );
 
@@ -1092,32 +1109,44 @@ void ddMainWindow::on_widButStopMobileImage_clicked()
  void ddMainWindow::sdcardCopyFinished (int code, QProcess::ExitStatus exitStatus)
  {
 
+     //........... проверяем что вернул процесс, какой результат
+    // QByteArray res = sdcardCopyProc->readAll();
+     //checkResultCopyData(res);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-     // приводим кнопки и переменные к состоянию до старта процесса копирования
-     initialAfterFinishMobile();
-
-     qDebug() << "sdcard coping  process finished" << "exitStatus=" << exitStatus << "exitCode=" << code ;
-
+     qDebug() << "coping of Sdcard FOLDER pid process" << sdcardCopyProc->pid() <<"  finished;"  << "exitStatus=" << exitStatus << "exitCode=" << code ;
      sdcardCopyProc->close();
 
        if (sdcardCopyProc)
            delete sdcardCopyProc;
+
+
+       // проверяем была ли нажата кнопка STOP.
+       // если кнопка нажата то второй процесс не запускаем
+
+       if (!stopMobileCopy)
+       {
+           //============запуск второго процесса копирования папки /sdcard====================
+           extSdcardCopyProc = new QProcess (this);
+           QObject::connect(extSdcardCopyProc, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(extSdcardCopyFinished(int,QProcess::ExitStatus)));
+           startMobileFolderCopy(extsdcardFolder, (ui->widLineDestDirMobile->text() + extsdcardFolder), extSdcardCopyProc );
+
+       }
+
+       else // значит копирование прервано
+          initialAfterFinishMobile();
+ }
+
+ void ddMainWindow::extSdcardCopyFinished(int code, QProcess::ExitStatus exitStatus)
+ {
+     // приводим кнопки и переменные к состоянию до старта процесса копирования
+     initialAfterFinishMobile();
+
+     qDebug() << "extsdcard coping  process finished" << "exitStatus=" << exitStatus << "exitCode=" << code ;
+
+     extSdcardCopyProc->close();
+
+       if (extSdcardCopyProc)
+           delete extSdcardCopyProc;
 
        // останавливаем вывод информации и убиваем объект отвечающий за вывод информации
        if (mobileCopyInfo != NULL)
@@ -1125,13 +1154,8 @@ void ddMainWindow::on_widButStopMobileImage_clicked()
            mobileCopyInfo->setStopLoop();
            //mobileCopyInfo->exit();
            //mobileCopyInfo = NULL;
-           qDebug() << "mobileCopyInfo is Running =" << mobileCopyInfo->isRunning();
+           //qDebug() << "mobileCopyInfo is Running =" << mobileCopyInfo->isRunning();
        }
- }
-
- void ddMainWindow::extSdcardCopyFinished(int code, QProcess::ExitStatus exitStatus)
- {
-
 
 
 
@@ -1253,19 +1277,6 @@ void ddMainWindow::on_widButStopMobileImage_clicked()
   void ddMainWindow::slotChangeProgressBarValMobile (int currentValue)
   {
     ui->widProgressBarMobile->setValue(currentValue);
-
-  }
-
-  // инициализация перед началом копирования телефона
-  bool ddMainWindow::initialBeforStartMobile()
-  {
-
-    stopMobileCopy = false;
-   ui->widProgressBarMobile->setValue(0);
-   ui->widButStartMobileImage->setEnabled(false);
-   ui->widButStopMobileImage->setEnabled(true);
-   ui->widLabelServiceInfo->setText("Coping process is started......");
-   return true;
 
   }
 

@@ -32,6 +32,7 @@ private slots:
     bool startLoopInfo();
     qlonglong getSizeDestFolder();
     QString getStringInfo();
+    QString getStrTimeOfCopy();
 
 private:
      QString DestDirMobile;
@@ -40,6 +41,7 @@ private:
      bool stopLoop;
      TShowTime* ShowTime;
      bool interruptCopy;
+     QString totalTimeOfCopy;
 
 
 

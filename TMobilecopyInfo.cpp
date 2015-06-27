@@ -7,6 +7,7 @@ TMobileCopyInfo::TMobileCopyInfo(QObject *parent)
 
 bool TMobileCopyInfo::initialize(const QString & destFolder, const qlonglong mobileTotalSize, off_t startTime)
 {
+    ShowTime = new TShowTime();
     DestDirMobile = destFolder;
     MobileTotalSize = mobileTotalSize;
     StartTime = startTime;
@@ -81,7 +82,7 @@ bool TMobileCopyInfo::startLoopInfo()
     {
 
         double size = (double)getSizeDestFolder() / 1024 /1024;
-        QString str = trUtf8("Копирование завершено. Скопировано:  ") + QString::number(size) + " Mbyte ";
+        QString str = trUtf8("Копирование завершено. Скопировано:  ") + QString::number(size) + trUtf8(" Mbyte \n Общее время копирования ") + getStrTimeOfCopy() ;
 
 
      emit sigChangeProgressBarValMobile(100);
@@ -141,7 +142,7 @@ void TMobileCopyInfo::breakCopy()
 QString TMobileCopyInfo::getStringInfo()
 {
 
-    ShowTime = new TShowTime();
+
     time_t nextTime = 0;
     time_t workTime = 0;
     QString resultStr = "Идет вычисление";
@@ -162,13 +163,29 @@ QString TMobileCopyInfo::getStringInfo()
     //cout << "valLostTimeMobile=" << valLostTimeMobile ;
 
     QString currTimeStr = ShowTime->getTimestr(workTime);
+    totalTimeOfCopy = currTimeStr;
 
     double currentDestSize = (double)copiedByte / 1024 /1024;
 
-    resultStr = trUtf8("Осталоcь: ") + ShowTime->getTimestr(valLostTimeMobile) + trUtf8(" \nОбщее время копирования: ") + currTimeStr + trUtf8("\nСкопировано: ") + QString::number(currentDestSize) + " Mb";
+    // вычислить отсавшеевся время невозможно
+    resultStr = trUtf8(" \nОбщее время копирования: ") + currTimeStr + trUtf8("\nСкопировано: ") + QString::number(currentDestSize) + " Mb";
+   // resultStr = trUtf8("Осталоcь: ") + ShowTime->getTimestr(valLostTimeMobile) + trUtf8(" \nОбщее время копирования: ") + currTimeStr + trUtf8("\nСкопировано: ") + QString::number(currentDestSize) + " Mb";
 
     return resultStr;
 
+
+}
+
+QString TMobileCopyInfo::getStrTimeOfCopy()
+{
+    time_t nextTime = 0;
+    time_t workTime = 0;
+
+    nextTime = time (&nextTime);
+    workTime = nextTime - StartTime;
+    QString totalTimeStr = ShowTime->getTimestr(workTime);
+
+    return totalTimeStr;
 
 }
 
